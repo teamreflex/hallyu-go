@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ type Environment struct {
 	DISCORD_WEBHOOK string
 }
 
-func getEnv() (Environment, error) {
+func GetEnv() (Environment, error) {
 	env := Environment{}
 
 	loopInterval, err := strconv.Atoi(os.Getenv("LOOP_INTERVAL"))

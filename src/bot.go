@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-func main() {
-    env, err := getEnv()
+func Start() {
+    env, err := GetEnv()
     if err != nil {
         fmt.Printf("Failed to get environment variables: %s\n", err)
         os.Exit(1)
@@ -25,7 +25,7 @@ func main() {
 
     go func() {
         for range ticker.C {
-            handleProducts()
+            HandleProducts()
         }
     }()
 
@@ -33,7 +33,7 @@ func main() {
 }
 
 var searchTerms = []string{"artms", "polaroid"}
-func handleProducts() {
+func HandleProducts() {
     db := GetDatabase()
 
     // fetch products from remote

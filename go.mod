@@ -1,4 +1,4 @@
-module app
+module hallyu-go
 
 go 1.22.5
 
