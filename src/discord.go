@@ -3,23 +3,16 @@ package bot
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 )
 
 type WebhookPayload struct {
 	Content string `json:"content"`
 }
 
-func PostToDiscord(product RawProduct) (bool, error) {
-	// build http client
-	client := http.Client{
-		Timeout: time.Second * 2,
-	}
-
+func PostToDiscord(product RawProduct, client *http.Client) (bool, error) {
 	// make request
 	payload := WebhookPayload{
 		Content: fmt.Sprintf("@here: %s: https://hallyusuperstore.com/products/%s", product.Title, product.Handle),
@@ -35,17 +28,13 @@ func PostToDiscord(product RawProduct) (bool, error) {
 
 	// make sure request is good
 	if err != nil {
-		str := fmt.Sprintf("Failed to create Discord request: %s", err)
-		fmt.Println(str)
-		return false, errors.New(str)
+		return false, fmt.Errorf("failed to create Discord request: %s", err)
 	}
 
 	// make request
 	res, err := client.Do(req)
 	if err != nil {
-		str:= fmt.Sprintf("Failed to send Discord request: %s", err)
-		fmt.Println(str)
-		return false, errors.New(str)
+		return false, fmt.Errorf("failed to send Discord request: %s", err)
 	}
 
 	return res.StatusCode == 204, nil

@@ -2,15 +2,19 @@ package bot
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
+	"gorm.io/gorm"
 )
 
 func Start() {
+    fmt.Println("Starting bot...")
+
     env, err := GetEnv()
     if err != nil {
         fmt.Printf("Failed to get environment variables: %s\n", err)
@@ -23,9 +27,16 @@ func Start() {
     ticker := time.NewTicker(time.Second * time.Duration(env.LOOP_INTERVAL))
     defer ticker.Stop()
 
+    client := http.Client{
+        Timeout: time.Second * 2,
+    }
+
     go func() {
         for range ticker.C {
-            HandleProducts()
+             _, err := HandleProducts(db, &client)
+             if err != nil {
+                 fmt.Println(err.Error())
+             }
         }
     }()
 
@@ -33,11 +44,12 @@ func Start() {
 }
 
 var searchTerms = []string{"artms", "polaroid"}
-func HandleProducts() {
-    db := GetDatabase()
-
+func HandleProducts(db *gorm.DB, client *http.Client) (bool, error) {
     // fetch products from remote
-    products := GetProducts()
+    products, err := GetProducts(client)
+    if err != nil {
+        return false, err
+    }
 
     // filter new products by search terms
     filteredProducts := make([]RawProduct, 0)
@@ -51,7 +63,7 @@ func HandleProducts() {
     }
 
     if (len(filteredProducts) == 0) {
-        return
+        return true, nil
     }
     
     // get ids of remote products
@@ -83,7 +95,7 @@ func HandleProducts() {
     }
 
     if (len(newProducts) == 0) {
-        return
+        return true, nil
     }
 
     // post new products to discord and write to database
@@ -96,8 +108,14 @@ func HandleProducts() {
         }
 
         // post to discord
-        PostToDiscord(rawProduct)
+        _, err := PostToDiscord(rawProduct, client)
+        if err != nil {
+            fmt.Println(err.Error())
+        }
+        
         // write to database
         db.Create(&newProduct)
     }
+
+    return true, nil
 }

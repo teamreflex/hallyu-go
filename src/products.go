@@ -21,19 +21,13 @@ type RawProductResponse struct {
 
 var url = "https://hallyusuperstore.com/products.json"
 
-func GetProducts() []RawProduct {
-	// build http client
-	client := http.Client{
-		Timeout: time.Second * 2,
-	}
-
+func GetProducts(client *http.Client) ([]RawProduct, error) {
 	// make request
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 
 	// make sure request is good
 	if err != nil {
-		fmt.Printf("Failed to create request: %s\n", err)
-		return GetProducts()
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// make request
@@ -45,12 +39,10 @@ func GetProducts() []RawProduct {
 		if res.StatusCode == 429 {
 			fmt.Println("Rate limit hit, waiting 5 minutes...")
 			time.Sleep(time.Minute * 5)
-			return GetProducts()
+			return GetProducts(client)
 		}
 
-		fmt.Printf("Failed to get products: %s\n", err)
-		time.Sleep(time.Minute * 1)
-		return GetProducts()
+		return nil, fmt.Errorf("failed to get products: %s", err)
 	}
 
 	// read response body
@@ -60,19 +52,15 @@ func GetProducts() []RawProduct {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Printf("Failed to parse response body: %s\n", err)
-		time.Sleep(time.Minute * 1)
-		return GetProducts()
+		return nil, fmt.Errorf("failed to parse response body: %s", err)
 	}
 
 	// parse response
 	response := RawProductResponse{}
 	jsonErr := json.Unmarshal(body, &response)
 	if jsonErr != nil {
-		fmt.Printf("Failed to parse response JSON: %s\n", jsonErr)
-		time.Sleep(time.Second * 10)
-		return GetProducts()
+		return nil, fmt.Errorf("failed to parse response JSON: %s", jsonErr)
 	}
 
-	return response.Products
+	return response.Products, nil
 }
